@@ -1,0 +1,71 @@
+# =============================================================================
+# Go
+# =============================================================================
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+*.cover
+coverage.html
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# =============================================================================
+# IDE / Editor
+# =============================================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (GoLand)
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# macOS
+# =============================================================================
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# =============================================================================
+# Project Specific
+# =============================================================================
+
+# Note files (personal learning notes - optional)
+# *.note
+
+# Benchmark output files
+*.prof
+*.cpu
+*.mem
+*.trace
+
+# Build output
+/bin/
+/dist/
+
+# Temporary files
+*.tmp
+*.temp

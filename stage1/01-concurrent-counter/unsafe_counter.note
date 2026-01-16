@@ -1,0 +1,14 @@
+1. Why does this happen?
+    - c.value++ is NOT atomic - it's actually 3 operations:
+    - Read c.value
+    - Add 1
+    - Write back
+    - When goroutines interleave these operations, values get lost
+
+2. Read the race output - It tells you:
+    - Which goroutine wrote
+    - Which line of code
+    - What the previous operation was
+
+3. How to fix?
+    - One way is to use sync.Mutex to protect critical section

@@ -1,0 +1,3 @@
+Question: why even a simple read needs protection?
+
+Without the lock, you could read a "torn" value if another goroutine is writing. On some architectures, a 64-bit write happens as two 32-bit operations. Reading during the write could give you garbage data!
