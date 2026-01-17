@@ -1,0 +1,60 @@
+# Rate Limiter Learning Notes
+
+## Algorithm Comparison
+
+| Algorithm | Burst | Output Rate | Memory | Best For |
+|-----------|-------|-------------|--------|----------|
+| Token Bucket | ✅ Allows | Variable | O(1) | User-facing APIs |
+| Leaky Bucket | ❌ Queues | Constant | O(1) | Backend protection |
+| Sliding Window Log | ❌ No | Variable | O(n) | Accurate limiting |
+| Sliding Window Counter | ❌ No | Variable | O(1) | Memory-efficient |
+
+## Key Insight: Same Capacity ≠ Same Behavior
+
+With capacity = 10 and rate = 10/sec:
+
+Token Bucket:
+- 10 requests arrive → All 10 allowed instantly
+- Backend sees: SPIKE (can overload)
+- Capacity means: "how much burst allowed"
+
+Leaky Bucket:
+- 10 requests arrive → Queued, released 1 per 100ms
+- Backend sees: Constant rate (protected)
+- Capacity means: "how much can queue before dropping"
+
+## When to Use Each
+
+Token Bucket:
+- User-facing APIs (better UX allows bursts)
+- AWS API Gateway, Stripe, GitHub API use this
+- Good when occasional spikes are acceptable
+
+Leaky Bucket:
+- Protecting databases/backends from overload
+- Video streaming, network traffic shaping
+- When constant rate is critical
+
+Sliding Window:
+- Per-user/IP accurate rate limiting
+- When precision matters more than memory
+
+## Production Go Packages
+
+1. golang.org/x/time/rate - Official, Token Bucket, single server
+2. uber-go/ratelimit - Uber's Leaky Bucket, smooth output
+3. go-redis/redis_rate - Distributed with Redis backend
+
+## How Leaky Bucket Protects Systems
+
+1. Traffic Shaping: Converts bursty → smooth output
+2. Queue Buffer: Short bursts queued, long bursts dropped
+3. Cascade Prevention: Backend receives predictable load
+4. Resource Protection: Prevents connection/thread exhaustion
+
+## My Implementation Changes
+
+Changed Leaky Bucket model:
+- Original: remaining = "space left in bucket"
+- My version: remaining = "fill level" (more intuitive)
+- Start empty (0), increment on Allow(), decrement on leak()

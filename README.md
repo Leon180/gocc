@@ -33,11 +33,11 @@
   - [x] Compare performance between Mutex vs atomic
   - [x] Write benchmark tests
 
-- [ ] **1.4 Rate Limiter Implementation**
-  - [ ] Implement Token Bucket algorithm
-  - [ ] Implement Leaky Bucket algorithm
-  - [ ] Implement Sliding Window algorithm
-  - [ ] Add API quota management
+- [x] **1.4 Rate Limiter Implementation**
+  - [x] Implement Token Bucket algorithm
+  - [x] Implement Leaky Bucket algorithm
+  - [x] Implement Sliding Window algorithm
+  - [x] Add API quota management
 
 ---
 
