@@ -15,7 +15,7 @@ func TestTokenBucket_Basic(t *testing.T) {
 	tb := NewTokenBucket(10, 10, time.Second)
 
 	// Should allow first 10 requests
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		if !tb.Allow() {
 			t.Errorf("Request %d should be allowed", i+1)
 		}
@@ -32,7 +32,7 @@ func TestTokenBucket_Refill(t *testing.T) {
 	tb := NewTokenBucket(5, 10, time.Second)
 
 	// Use all tokens
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		tb.Allow()
 	}
 
@@ -71,7 +71,7 @@ func TestTokenBucket_Concurrent(t *testing.T) {
 	allowed := make(chan bool, 200)
 
 	// Launch 200 goroutines, each trying to get 1 token
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -105,7 +105,7 @@ func TestLeakyBucket_Basic(t *testing.T) {
 	lb := NewLeakyBucket(5, 100, time.Second)
 
 	// Should allow first 5 requests
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if !lb.Allow() {
 			t.Errorf("Request %d should be allowed", i+1)
 		}
@@ -122,7 +122,7 @@ func TestLeakyBucket_Leak(t *testing.T) {
 	lb := NewLeakyBucket(5, 10, time.Second)
 
 	// Fill bucket with 5 requests
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		lb.Allow()
 	}
 
@@ -155,7 +155,7 @@ func TestLeakyBucket_Concurrent(t *testing.T) {
 	allowed := make(chan bool, 100)
 
 	// Launch 100 goroutines
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -189,7 +189,7 @@ func TestSlidingWindowLog_Basic(t *testing.T) {
 	sw := NewSlidingWindowLog(5, 100*time.Millisecond)
 
 	// Should allow first 5 requests
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if !sw.Allow() {
 			t.Errorf("Request %d should be allowed", i+1)
 		}
@@ -206,7 +206,7 @@ func TestSlidingWindowLog_WindowSlide(t *testing.T) {
 	sw := NewSlidingWindowLog(3, 50*time.Millisecond)
 
 	// Use all 3
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		sw.Allow()
 	}
 
@@ -230,7 +230,7 @@ func TestSlidingWindowLog_Concurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	allowed := make(chan bool, 100)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -261,7 +261,7 @@ func TestSlidingWindowCounter_Basic(t *testing.T) {
 	sw := NewSlidingWindowCounter(5, 100*time.Millisecond)
 
 	// Should allow first 5 requests
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if !sw.Allow() {
 			t.Errorf("Request %d should be allowed", i+1)
 		}
@@ -279,7 +279,7 @@ func TestSlidingWindowCounter_Concurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	allowed := make(chan bool, 100)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

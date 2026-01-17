@@ -1,0 +1,173 @@
+# Worker Pool Learning Notes
+
+## Self-Assessment Questions & Answers
+
+### Q1: How do you prevent goroutine leaks?
+- Always provide an exit path for goroutines (context cancellation, channel close)
+- Use `sync.WaitGroup` to track and wait for all goroutines
+- Use `select` with `ctx.Done()` to allow cancellation
+- Close input channels to signal workers to exit
+
+### Q2: What happens when you send to a closed channel?
+**PANIC!** `panic: send on closed channel`
+
+```go
+ch := make(chan int)
+close(ch)
+ch <- 1  // panic: send on closed channel
+```
+
+This is why we use `select` with `ctx.Done()`:
+```go
+select {
+case ch <- data:    // Try to send
+case <-ctx.Done():  // Exit if shutting down
+    return
+}
+```
+
+### Q3: How do you ensure all workers finish before main exits?
+- Use `sync.WaitGroup`:
+  ```go
+  wg.Add(1)     // Before goroutine
+  go func() {
+      defer wg.Done()  // When goroutine exits
+  }()
+  wg.Wait()     // Block until all Done()
+  ```
+
+### Why use sync.Once for closing channels?
+**Problem:** Multiple goroutines might try to close the same channel:
+```go
+// Thread 1: GracefulShutdown() calls Close()
+// Thread 2: ForceShutdown() calls Close()
+// Result: panic: close of closed channel
+```
+
+**Solution:** `sync.Once` guarantees code runs exactly once:
+```go
+var closeOnce sync.Once
+
+func (p *Pool) Close() {
+    closeOnce.Do(func() {
+        close(p.jobs)  // Only runs first time
+    })
+}
+```
+
+### Q4: When should you use buffered vs unbuffered channels?
+
+#### Unbuffered Channel (`make(chan T)`)
+```go
+ch := make(chan int) // buffer size = 0
+```
+
+Behavior:
+- Sender blocks → until receiver is ready
+- Receiver blocks → until sender sends
+- Ensures SYNCHRONIZATION (handshake)
+
+```
+Sender ─────┬───────────► waits
+            │
+         [handoff]
+            │
+Receiver ───┴───────────► waits
+```
+
+Use when:
+- Need confirmation the other side received
+- Synchronization between goroutines
+- Turn-based communication
+
+#### Buffered Channel (`make(chan T, n)`)
+```go
+ch := make(chan int, 10) // buffer size = 10
+```
+
+Behavior:
+- Sender blocks → only when buffer is FULL
+- Receiver blocks → only when buffer is EMPTY
+- Allows DECOUPLING (async)
+
+```
+Sender ─────► [█ █ █ _ _ _] ◄───── Receiver
+              6 slots, 3 used
+```
+
+Use when:
+- Decouple producer/consumer speeds
+- Allow burst submissions
+- Async communication
+
+#### In Worker Pool
+| Channel | Type | Why |
+|---------|------|-----|
+| `jobs` | Buffered | Allow submitting multiple jobs without blocking |
+| `results` | Buffered | Workers don't block waiting for consumer |
+
+## Key Concepts Learned
+
+### 1. atomic.Int32
+- CPU-level atomic operations (no locks)
+- Safe for concurrent read/write of simple values
+- Use cases: counters, flags, worker counts
+
+### 2. Context Timeout
+```go
+ctx, cancel := context.WithTimeout(parent, 5*time.Second)
+defer cancel()  // Always cancel to release resources
+```
+- Child context cancels on timeout
+- Parent context unaffected
+- Propagates cancellation down the tree
+
+### 3. Panic Recovery with defer
+```go
+func safeProcess() (result Result) {
+    defer func() {
+        if r := recover(); r != nil {
+            result = Result{Err: &PanicError{}}
+        }
+    }()
+    // if panic here, defer still runs
+    return riskyOperation()
+}
+```
+- `defer` runs even on panic
+- `recover()` catches panic value
+- Named return allows modification in defer
+
+### 4. sync.Once
+```go
+var once sync.Once
+once.Do(func() {
+    // Only executes once, even if called multiple times
+})
+```
+- Thread-safe single execution
+- Perfect for lazy initialization, close operations
+
+## Worker Pool Pattern
+
+```
+         ┌─────────┐
+         │  Jobs   │ (buffered channel)
+         └────┬────┘
+              │
+    ┌─────────┼─────────┐
+    ▼         ▼         ▼
+┌───────┐ ┌───────┐ ┌───────┐
+│Worker1│ │Worker2│ │Worker3│
+└───┬───┘ └───┬───┘ └───┬───┘
+    │         │         │
+    └─────────┼─────────┘
+              ▼
+         ┌─────────┐
+         │ Results │
+         └─────────┘
+```
+
+## Files Created
+- `pool/pool.go` - Basic worker pool
+- `pool/dynamic_pool.go` - Dynamic with resize, timeout, panic recovery

@@ -45,25 +45,25 @@
 
 > Focus: `channel`, goroutine lifecycle management
 
-- [ ] **2.1 Basic Worker Pool**
-  - [ ] Implement fixed number of worker goroutines
-  - [ ] Use channels for task distribution
-  - [ ] Implement result collection
+- [x] **2.1 Basic Worker Pool**
+  - [x] Implement fixed number of worker goroutines
+  - [x] Use channels for task distribution
+  - [x] Implement result collection
 
-- [ ] **2.2 Dynamic Worker Pool**
-  - [ ] Support dynamic worker count adjustment
-  - [ ] Implement worker health checks
-  - [ ] Add task timeout handling
+- [x] **2.2 Dynamic Worker Pool**
+  - [x] Support dynamic worker count adjustment
+  - [x] Implement worker health checks
+  - [x] Add task timeout handling
 
-- [ ] **2.3 Graceful Shutdown**
-  - [ ] Use `context.Context` to control lifecycle
-  - [ ] Implement graceful shutdown, waiting for all tasks to complete
-  - [ ] Handle forced shutdown scenarios
+- [x] **2.3 Graceful Shutdown**
+  - [x] Use `context.Context` to control lifecycle
+  - [x] Implement graceful shutdown, waiting for all tasks to complete
+  - [x] Handle forced shutdown scenarios
 
-- [ ] **2.4 Practical Application: Batch Task Executor**
-  - [ ] Implement image processor (e.g., batch thumbnails)
-  - [ ] Implement file processor (e.g., batch compression)
-  - [ ] Add progress reporting
+- [x] **2.4 Practical Application: Batch Task Executor**
+  - [x] Implement image processor (e.g., batch thumbnails)
+  - [x] Implement file processor (e.g., batch compression)
+  - [x] Add progress reporting
 
 ---
 

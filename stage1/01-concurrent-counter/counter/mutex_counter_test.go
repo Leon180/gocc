@@ -46,10 +46,10 @@ func TestMutexCounter_Concurrent(t *testing.T) {
 	wg.Add(numGoroutines)
 
 	// Launch multiple goroutines that all increment the counter
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			defer wg.Done()
-			for j := 0; j < incrementsPerGoroutine; j++ {
+			for range incrementsPerGoroutine {
 				c.Increment()
 			}
 		}()
@@ -81,20 +81,20 @@ func TestMutexCounter_ConcurrentIncrementDecrement(t *testing.T) {
 	wg.Add(numGoroutines * 2) // Half increment, half decrement
 
 	// Increment goroutines
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			defer wg.Done()
-			for j := 0; j < opsPerGoroutine; j++ {
+			for range opsPerGoroutine {
 				c.Increment()
 			}
 		}()
 	}
 
 	// Decrement goroutines
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			defer wg.Done()
-			for j := 0; j < opsPerGoroutine; j++ {
+			for range opsPerGoroutine {
 				c.Decrement()
 			}
 		}()
