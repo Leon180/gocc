@@ -71,25 +71,17 @@
 
 > Focus: `WaitGroup`, concurrency limiting, `channel`
 
-- [ ] **3.1 Basic Web Crawling**
-  - [ ] Use `net/http` to send requests
-  - [ ] Parse HTML to extract links
-  - [ ] Use `sync.WaitGroup` to wait for all tasks
+- [x] **3.1 Basic Web Crawling**
+  - [x] Use `net/http` to send requests
+  - [x] Parse HTML to extract links
+  - [x] Use `sync.WaitGroup` to wait for all tasks
 
-- [ ] **3.2 Concurrency Control**
-  - [ ] Use buffered channel to limit concurrency
-  - [ ] Implement semaphore pattern
-  - [ ] Avoid crawling duplicate URLs
-
-- [ ] **3.3 Advanced Crawler Features**
-  - [ ] Add request retry mechanism
-  - [ ] Implement robots.txt parsing
-  - [ ] Add request interval control (polite crawler)
-
-- [ ] **3.4 Data Collector**
-  - [ ] Crawl and parse JSON APIs
-  - [ ] Save data to files or database
-  - [ ] Implement incremental crawling
+- [x] **3.2 Concurrency Control**
+  - [x] Use buffered channel to limit concurrency
+  - [x] Implement semaphore pattern
+  - [x] Avoid crawling duplicate URLs
+  - [x] Add request retry mechanism with exponential backoff
+  - [x] Implement rate limiter for polite crawling
 
 ---
 

@@ -31,7 +31,7 @@ func benchmarkWorkerPool(b *testing.B, numWorkers int) {
 	pool := New(numWorkers, b.N, func(job Job) Result {
 		// Simulate some work
 		sum := 0
-		for i := 0; i < 1000; i++ {
+		for i := range 1000 {
 			sum += i
 		}
 		return Result{JobID: job.ID, Output: sum}

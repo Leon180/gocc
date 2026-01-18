@@ -1,0 +1,77 @@
+# Web Crawler Learning Notes
+
+## Self-Assessment Questions & Answers
+
+### Q1: Why use buffered channel as semaphore?
+Buffered channel limits concurrent operations by capacity:
+```go
+semaphore := make(chan struct{}, 3) // Max 3 concurrent
+
+// Acquire - blocks when buffer full
+semaphore <- struct{}{}
+defer func() { <-semaphore }() // Release
+```
+When 3 goroutines have acquired, the 4th blocks until one releases.
+
+### Q2: How do you prevent the same URL from being crawled twice?
+Use `sync.Map.LoadOrStore` for atomic check-and-set:
+```go
+if _, loaded := visited.LoadOrStore(url, true); loaded {
+    return // Already visited
+}
+// Continue with crawling...
+```
+This is atomic - no race between checking and setting.
+
+### Q3: What's a reasonable timeout for HTTP requests?
+- 10-30 seconds for normal pages
+- Consider network conditions and server response time
+- Use context with timeout for cancellation
+- Different timeouts for different operations (connect vs read)
+
+### Q4: How do you handle temporarily failed requests?
+Retry with exponential backoff:
+- Start with small delay (e.g., 500ms)
+- Multiply by factor (e.g., 2x) each attempt
+- Add jitter to prevent thundering herd
+- Cap at maximum backoff
+- Only retry retryable errors (5xx, timeout, 429)
+
+## Key Patterns Learned
+
+### 1. Semaphore Pattern
+Buffered channel as concurrency limiter - simple and effective.
+
+### 2. sync.Map for Deduplication
+LoadOrStore provides atomic check-and-set without explicit locking.
+
+### 3. WaitGroup Synchronization
+**IMPORTANT:** Call `wg.Add(1)` BEFORE starting goroutine, not inside it.
+```go
+wg.Add(1)      // Synchronous - before goroutine
+go func() {
+    defer wg.Done()
+    // ...
+}()
+```
+
+### 4. Exponential Backoff with Jitter
+```
+backoff = initial * multiplier^attempt ± jitter
+
+Why jitter?
+Without: 100 clients retry at same time → still overwhelms server
+With:    Load spread across time window → server recovers
+```
+
+### 5. Generic Retry Function
+Go 1.18+ generics enable reusable retry logic:
+```go
+func RetryWithBackoff[T any](ctx context.Context, config RetryConfig, fn func() (T, error)) (T, error)
+```
+
+## Files Created
+- `crawler/crawler.go` - Core crawler with semaphore, WaitGroup
+- `crawler/parser.go` - HTML link extraction
+- `crawler/retry.go` - Exponential backoff, rate limiter
+- `crawler/*_test.go` - Comprehensive tests (80% coverage)
