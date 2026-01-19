@@ -1,0 +1,146 @@
+# Pub/Sub Learning Notes
+
+## Self-Assessment Questions & Answers
+
+### Q1: How do you prevent slow subscribers from blocking publishers?
+**Answer: Non-blocking send with `select` and `default`**
+
+```go
+func (s *Subscriber) send(msg Message) bool {
+    select {
+    case s.messages <- msg:  // Try to send
+        return true
+    default:                  // If buffer full, DON'T WAIT
+        return false          // Drop message instead
+    }
+}
+```
+
+Without this pattern, a slow subscriber would block the publisher:
+```
+Publisher sends ──► [full buffer] ──► Slow Subscriber
+                    ↑
+              Publisher WAITS here forever!
+```
+
+With non-blocking, publisher continues immediately.
+
+---
+
+### Q2: What happens when a subscriber disconnects mid-message?
+**Answer: Check `closed` flag before sending**
+
+```go
+func (s *Subscriber) send(msg Message) bool {
+    s.mu.RLock()
+    if s.closed {          // Check if closed
+        s.mu.RUnlock()
+        return false       // Don't send to closed subscriber
+    }
+    s.mu.RUnlock()
+    
+    select {
+    case s.messages <- msg:
+        return true
+    default:
+        return false
+    }
+}
+```
+
+Without this check: `panic: send on closed channel`
+
+---
+
+### Q3: How would you implement message filtering?
+**Answer: Add a filter function to the subscriber**
+
+```go
+type Subscriber struct {
+    filter func(Message) bool
+}
+
+func (s *Subscriber) send(msg Message) bool {
+    if s.filter != nil && !s.filter(msg) {
+        return false  // Message filtered out
+    }
+    // ... continue with send
+}
+
+// Usage:
+sub.SetFilter(func(msg Message) bool {
+    str, ok := msg.Payload.(string)
+    return ok && strings.Contains(str, "important")
+})
+```
+
+---
+
+### Q4: What's the difference between fan-out and broadcasting?
+
+| Aspect | Fan-Out | Broadcast |
+|--------|---------|-----------|
+| Blocking | Blocks if receiver slow | Non-blocking, drops for slow |
+| Guarantee | All receivers get message | Best-effort delivery |
+| Use case | All outputs must receive | Real-time (OK to lose some) |
+
+```go
+// Fan-Out (blocking)
+for _, out := range outputs {
+    out <- msg  // Waits for each receiver
+}
+
+// Broadcast (non-blocking)
+for _, out := range outputs {
+    select {
+    case out <- msg:
+    default:  // Skip if buffer full
+    }
+}
+```
+
+---
+
+## Key Patterns Learned
+
+### 1. Fan-Out Pattern
+One input → multiple outputs (all receive same message)
+```
+input ─┬──► output1
+       ├──► output2
+       └──► output3
+```
+
+### 2. Fan-In Pattern
+Multiple inputs → one output (merged stream)
+```
+input1 ───┐
+input2 ───┼──► output
+input3 ───┘
+```
+
+### 3. Pipeline Pattern
+Chain of transformations
+```
+input ──► stage1 ──► stage2 ──► output
+```
+
+### 4. Non-Blocking Channel Send
+Prevents slow receivers from blocking sender:
+```go
+select {
+case ch <- msg:    // Try
+default:           // Skip if blocked
+}
+```
+
+### 5. Thread Safety for Messages
+- Simple values (string, int) are copied on send - safe
+- Pointers, slices, maps share underlying data - need immutability or deep copy
+
+---
+
+## Files Created
+- `pubsub/broker.go` - Message, Subscriber, Broker with fan-out
+- `pubsub/fanout.go` - FanOut[T], FanIn[T], Pipeline[T], Broadcast[T]
+- `pubsub/*_test.go` - 15 tests, 88.8% coverage

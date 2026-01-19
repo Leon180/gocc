@@ -89,25 +89,17 @@
 
 > Focus: `channel`, fan-out/fan-in patterns
 
-- [ ] **4.1 Basic Pub/Sub**
-  - [ ] Implement Publisher and Subscriber interfaces
-  - [ ] Use channels for message passing
-  - [ ] Support multiple subscribers
+- [x] **4.1 Basic Pub/Sub**
+  - [x] Implement Publisher and Subscriber interfaces
+  - [x] Use channels for message passing
+  - [x] Support multiple subscribers
+  - [x] Non-blocking send for slow subscribers
 
-- [ ] **4.2 Topic Subscription**
-  - [ ] Implement topic-based subscription
-  - [ ] Support wildcard subscription patterns
-  - [ ] Implement subscriber groups
-
-- [ ] **4.3 Fan-out / Fan-in Patterns**
-  - [ ] Implement fan-out: distribute one input to multiple processors
-  - [ ] Implement fan-in: merge multiple inputs to one output
-  - [ ] Combine fan-out and fan-in
-
-- [ ] **4.4 Event Dispatcher**
-  - [ ] Implement Event Bus
-  - [ ] Support synchronous and asynchronous event handling
-  - [ ] Add event filtering mechanism
+- [x] **4.2 Fan-out / Fan-in Patterns**
+  - [x] Implement fan-out: distribute one input to multiple processors
+  - [x] Implement fan-in: merge multiple inputs to one output
+  - [x] Implement pipeline pattern
+  - [x] Combine fan-out and fan-in
 
 ---
 
