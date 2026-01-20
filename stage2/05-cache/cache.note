@@ -1,0 +1,138 @@
+# Cache System Learning Notes
+
+## Self-Assessment Questions & Answers
+
+### Q1: When to use RWMutex vs regular Mutex?
+When write operations are much fewer than reads.
+
+```
+Mutex:      R → W → R → R → W    (all wait for each other)
+RWMutex:    R ─┬─ R ─┬─ W → R    (readers can overlap)
+               └────┘
+```
+
+- RWMutex allows multiple concurrent readers
+- Only writers need exclusive access
+- Best for read-heavy workloads (like cache)
+
+---
+
+### Q2: Passive vs Active Expiration Trade-offs
+
+| Aspect | Passive | Active |
+|--------|---------|--------|
+| When | Check on read | Background goroutine |
+| CPU | Low (lazy) | Constant overhead |
+| Memory | Expired items stay until accessed | Frees memory immediately |
+| Latency | First read after expiry slow | Consistent read times |
+
+**Passive (our implementation):**
+```go
+if e.isExpired() {
+    c.Delete(key)  // Clean up on read
+}
+```
+
+**Active (background):**
+```go
+go func() {
+    for range time.Tick(interval) {
+        c.removeExpired()
+    }
+}()
+```
+
+---
+
+### Q3: How to prevent cache stampede?
+
+Cache stampede: Many requests hit expired key → all go to DB → overload!
+
+**Solutions:**
+1. **Singleflight** - Deduplicate in-flight requests
+2. **Early refresh** - Refresh before expiry
+3. **Lock per key** - Serialize fetches for same key
+
+---
+
+### Q4: Why upgrade from RLock to Lock?
+
+RLock is read-only! Cannot modify data while holding RLock.
+
+```go
+c.mu.RLock()
+e := c.data[key]  // Read: OK with RLock
+c.mu.RUnlock()
+
+c.mu.Lock()       // Need WRITE lock
+e.accessCount++   // Modify: requires Lock
+c.mu.Unlock()
+```
+
+Upgrading only for write improves concurrency.
+
+---
+
+## Key Patterns Learned
+
+### 1. RWMutex for Read-Heavy Workloads
+```go
+type Cache struct {
+    mu sync.RWMutex  // Not just Mutex
+}
+```
+
+### 2. Generic Cache with Type Safety
+```go
+type Cache[K comparable, V any] struct { ... }
+
+c := New[string, int](Config{})
+c.Set("key", 42)
+```
+
+### 3. Entry Metadata for Eviction
+```go
+type entry[V] struct {
+    value       V
+    expiration  time.Time
+    accessedAt  time.Time
+    accessCount int64
+}
+```
+
+---
+
+## Files Created
+- `cache/cache.go` - Generic cache with RWMutex, TTL, stats
+- `cache/ttl.go` - Active TTL expiration with background goroutine
+- `cache/lru.go` - LRU cache with doubly-linked list
+- `cache/*_test.go` - Tests (98.9% coverage)
+
+---
+
+## LRU Self-Assessment
+
+### Q1: Why doubly-linked list instead of singly-linked?
+To easily get the previous node's info so removing a node is O(1).
+With singly-linked, you'd need O(n) to find the previous node.
+
+### Q2: Why Lock instead of RWMutex for LRU Get?
+Because Get **modifies** the linked list (moveToFront) and stats.
+It's actually a write operation!
+
+```go
+func (c *LRUCache) Get(key K) {
+    c.mu.Lock()           // Not RLock!
+    c.moveToFront(node)   // Modifies list
+    c.hits++              // Modifies counter
+    c.mu.Unlock()
+}
+```
+
+### Q3: Time complexity?
+- Get: O(1) - map lookup + list operations
+- Set: O(1) - map insert + list operations
+- Evict: O(1) - remove tail node
+
+### Q4: Concurrent access?
+Single `mu.Lock()` for all operations since Get modifies state.

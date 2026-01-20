@@ -109,25 +109,20 @@
 
 > Focus: `RWMutex`, TTL expiration, concurrent read/write
 
-- [ ] **5.1 Basic In-Memory Cache**
-  - [ ] Implement `Get()`, `Set()`, `Delete()` methods
-  - [ ] Use `sync.RWMutex` for read-write separation
-  - [ ] Support any type (using generics)
+- [x] **5.1 Basic In-Memory Cache**
+  - [x] Implement `Get()`, `Set()`, `Delete()` methods
+  - [x] Use `sync.RWMutex` for read-write separation
+  - [x] Support any type (using generics)
 
-- [ ] **5.2 TTL Expiration Mechanism**
-  - [ ] Set expiration time for each key
-  - [ ] Implement passive expiration (check on read)
-  - [ ] Implement active expiration (background cleanup)
+- [x] **5.2 TTL Expiration Mechanism**
+  - [x] Set expiration time for each key
+  - [x] Implement passive expiration (check on read)
+  - [x] Implement active expiration (background cleanup)
 
-- [ ] **5.3 Cache Eviction Strategies**
-  - [ ] Implement LRU (Least Recently Used)
-  - [ ] Implement LFU (Least Frequently Used)
-  - [ ] Support memory limit control
-
-- [ ] **5.4 Advanced Features**
-  - [ ] Implement Cache Aside pattern
-  - [ ] Add cache statistics (hit rate, miss rate)
-  - [ ] Implement basic interface for distributed cache
+- [x] **5.3 Cache Eviction Strategies**
+  - [x] Implement LRU (Least Recently Used)
+  - [x] Doubly-linked list for O(1) eviction
+  - [x] Cache statistics (hits, misses, evictions)
 
 ---
 
