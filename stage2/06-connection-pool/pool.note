@@ -1,0 +1,124 @@
+# Connection Pool Learning Notes
+
+## Self-Assessment Questions & Answers
+
+### Q1: Why use channel instead of slice for pool?
+Channels provide built-in synchronization and natural blocking.
+
+```go
+// Slice (BAD): needs mutex, manual blocking
+mu.Lock()
+conn := slice[0]
+slice = slice[1:]
+mu.Unlock()
+
+// Channel (GOOD): no mutex, blocks automatically
+conn := <-p.conns  // Blocks if empty!
+```
+
+---
+
+### Q2: How do you detect a dead connection?
+Call `IsValid()` before returning connection from Acquire:
+```go
+conn := <-p.conns
+if !conn.IsValid() {
+    conn.Close()       // Destroy dead connection
+    <-p.semaphore      // Release semaphore slot
+    return p.Acquire() // Retry
+}
+return conn
+```
+
+---
+
+### Q3: What happens if Release is called twice?
+
+**Problem:** Same connection ends up in pool twice!
+```go
+Release(conn)  // 1st: conn added to pool
+Release(conn)  // 2nd: SAME conn added again!
+               // Now 2 Acquire() get same conn!
+```
+
+**Solution:** Track released state:
+```go
+type PooledConn struct {
+    Conn
+    released bool
+}
+
+func Release(conn *PooledConn) {
+    if conn.released {
+        return  // Ignore duplicate
+    }
+    conn.released = true
+    // ...
+}
+```
+
+---
+
+### Q4: Why semaphore in addition to conns channel?
+
+```
+conns channel:     Stores IDLE connections
+semaphore channel: Tracks TOTAL connections (created - destroyed)
+```
+
+```
+Scenario: maxSize = 3
+
+After 3 Acquires:
+  conns:     [] (empty)
+  semaphore: [x, x, x] (full - at max)
+
+After 1 Release:
+  conns:     [conn1] (1 idle)
+  semaphore: [x, x, x] (still full)
+
+After destroy:
+  semaphore: [x, x] (slot freed - can create new)
+```
+
+---
+
+## Key Patterns Learned
+
+### 1. Channel as Connection Store
+```go
+type Pool struct {
+    conns chan Conn  // Buffered channel holds idle connections
+}
+
+conn := <-pool.conns  // Acquire (blocks if empty)
+pool.conns <- conn    // Release
+```
+
+### 2. Semaphore for Max Connections
+```go
+semaphore := make(chan struct{}, maxSize)
+
+// Create: acquire slot
+semaphore <- struct{}{}
+conn := factory()
+
+// Destroy: release slot
+<-semaphore
+```
+
+### 3. Context-Based Timeout
+```go
+select {
+case conn := <-p.conns:
+    return conn
+case <-ctx.Done():
+    return nil, ErrTimeout
+}
+```
+
+---
+
+## Files Created
+- `pool/pool.go` - Pool with semaphore pattern
+- `pool/pool_test.go` - 8 tests (72% coverage)

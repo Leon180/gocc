@@ -134,10 +134,10 @@
 
 > Focus: channel as semaphore, resource management
 
-- [ ] **6.1 Basic Connection Pool**
-  - [ ] Use buffered channel to manage connections
-  - [ ] Implement `Acquire()` and `Release()` methods
-  - [ ] Set maximum connection limit
+- [x] **6.1 Basic Connection Pool**
+  - [x] Use buffered channel to manage connections
+  - [x] Implement `Acquire()` and `Release()` methods
+  - [x] Set maximum connection limit (semaphore pattern)
 
 - [ ] **6.2 Connection Lifecycle Management**
   - [ ] Implement connection health checks
