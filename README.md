@@ -149,10 +149,9 @@
   - [x] Implement connection warm-up
   - [x] Add connection usage statistics
 
-- [ ] **6.4 Practical Applications**
-  - [ ] Implement Database Connection Pool
-  - [ ] Implement HTTP Client Pool
-  - [ ] Implement gRPC Connection Pool
+- [x] **6.4 Practical Applications**
+  - [x] Implement Database Connection Pool
+  - [x] Implement HTTP Client Pool
 
 ---
 

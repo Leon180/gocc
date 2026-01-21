@@ -202,3 +202,57 @@ default:
 }
 ```
 
+---
+
+## Practical Inspirations (Real-World Libraries)
+
+### 1. `database/sql` (Go Standard Library)
+The built-in DB pool uses similar concepts:
+```go
+type DB struct {
+    freeConn     []*driverConn  // Like our conns channel
+    maxOpen      int            // Like our MaxSize
+    maxIdleTime  time.Duration  // Same concept!
+}
+```
+
+### 2. `pgx/pgxpool` (PostgreSQL Driver)
+A popular PostgreSQL pool - many patterns borrowed:
+- Acquire(ctx) / Release()
+- MinConns / MaxConns
+- HealthCheckPeriod
+- MaxConnLifetime / MaxConnIdleTime
+
+### 3. `go-redis` Pool
+```go
+type Options struct {
+    PoolSize     int           // MaxSize
+    MinIdleConns int           // MinSize
+    MaxConnAge   time.Duration // MaxLifetime
+    PoolTimeout  time.Duration // Acquire timeout
+}
+```
+
+### 4. `fasthttp` HostClient
+High-performance HTTP client per-host pooling.
+
+### Pattern Origins
+
+| Pattern | Source | Our Implementation |
+|---------|--------|-------------------|
+| Semaphore for max | sync.Pool, pgxpool | `semaphore chan struct{}` |
+| Channel as queue | database/sql | `conns chan Conn` |
+| Health check loop | pgxpool, go-redis | `healthCheckLoop()` |
+| Double release guard | pgxpool | `PooledConn.released` |
+| WarmUp / MinConns | pgxpool, go-redis | `WarmUp()` |
+
+---
+
+## Files Created
+- `pool/pool.go` - Basic pool with semaphore
+- `pool/managed.go` - ManagedPool with lifecycle
+- `pool/dbpool.go` - Database connection pool
+- `pool/httppool.go` - HTTP connection pool
+- `pool/*_test.go` - 25 tests
+
+

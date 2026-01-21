@@ -39,3 +39,4 @@ pool.conns <- conn
 - [x] Step 6.1: Basic Connection Pool
 - [x] Step 6.2: Lifecycle Management
 - [x] Step 6.3: Advanced Features (WarmUp, MinSize)
+- [x] Step 6.4: Practical Applications (DB, HTTP Pool)
