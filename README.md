@@ -139,15 +139,15 @@
   - [x] Implement `Acquire()` and `Release()` methods
   - [x] Set maximum connection limit (semaphore pattern)
 
-- [ ] **6.2 Connection Lifecycle Management**
-  - [ ] Implement connection health checks
-  - [ ] Auto-close idle connections
-  - [ ] Connection timeout handling
+- [x] **6.2 Connection Lifecycle Management**
+  - [x] Implement connection health checks
+  - [x] Auto-close idle connections
+  - [x] Connection timeout handling
 
-- [ ] **6.3 Advanced Connection Pool Features**
-  - [ ] Support min/max connection configuration
-  - [ ] Implement connection warm-up
-  - [ ] Add connection usage statistics
+- [x] **6.3 Advanced Connection Pool Features**
+  - [x] Support min/max connection configuration
+  - [x] Implement connection warm-up
+  - [x] Add connection usage statistics
 
 - [ ] **6.4 Practical Applications**
   - [ ] Implement Database Connection Pool

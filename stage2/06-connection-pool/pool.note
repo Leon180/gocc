@@ -121,4 +121,84 @@ case <-ctx.Done():
 
 ## Files Created
 - `pool/pool.go` - Pool with semaphore pattern
-- `pool/pool_test.go` - 8 tests (72% coverage)
+- `pool/managed.go` - ManagedPool with lifecycle management
+- `pool/*_test.go` - 17 tests
+
+---
+
+## Deep Dive: Semaphore
+
+### What is a Semaphore?
+A concurrency primitive that limits access to a shared resource.
+Think of it like a parking lot with limited spaces.
+
+```
+Parking Lot (semaphore with capacity 3):
+
+[Car1] [Car2] [Car3]   ← 3 cars parked (slots full)
+
+New car arrives → MUST WAIT until a car leaves
+```
+
+### Semaphore in Go (buffered channel)
+```go
+// Create semaphore with capacity 3
+semaphore := make(chan struct{}, 3)
+
+// Acquire (take a slot) - blocks if full
+semaphore <- struct{}{}
+
+// Release (free a slot)
+<-semaphore
+```
+
+### Visual Example
+```
+Initial: semaphore = [_, _, _]  (3 empty slots)
+
+Acquire: semaphore <- struct{}{}
+         semaphore = [x, _, _]  (1 slot taken)
+
+Acquire: semaphore <- struct{}{}
+         semaphore = [x, x, _]  (2 slots taken)
+
+Acquire: semaphore <- struct{}{}
+         semaphore = [x, x, x]  (FULL!)
+
+Acquire: semaphore <- struct{}{}
+         ↓
+         BLOCKS! Waits until a slot is freed.
+
+Release: <-semaphore
+         semaphore = [x, x, _]  (1 slot freed)
+         ↓
+         Blocked goroutine can now proceed!
+```
+
+### Two Channels, Two Purposes
+
+| Channel | Purpose | When Acquired | When Released |
+|---------|---------|---------------|---------------|
+| `conns` | Store **idle** connections | Acquire from pool | Release to pool |
+| `semaphore` | Track **total** connections | Create new conn | Destroy conn |
+
+### Why Not Just Check `len(conns)`?
+```go
+// WRONG: Race condition!
+if len(conns) < maxSize {
+    // Multiple goroutines can pass this check simultaneously
+    conn := factory()  // Creates more than maxSize!
+}
+```
+
+The semaphore provides **atomic** slot acquisition:
+```go
+// RIGHT: Atomic slot acquisition
+select {
+case semaphore <- struct{}{}:  // Only 1 goroutine succeeds
+    conn := factory()           // Guaranteed under limit
+default:
+    // Wait for slot
+}
+```
+
