@@ -124,8 +124,12 @@
   - [x] Doubly-linked list for O(1) eviction
   - [x] Cache statistics (hits, misses, evictions)
 
----
+- [x] **5.4 Advanced Features**
+  - [x] Implement Singleflight for cache stampede prevention
+  - [x] Implement Cache-Aside pattern
 
+---
+ 
 ### 6. Connection Pool
 
 > Focus: channel as semaphore, resource management

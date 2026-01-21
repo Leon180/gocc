@@ -41,3 +41,4 @@ mu.Unlock()
 - [x] Step 5.1: Basic In-Memory Cache
 - [x] Step 5.2: TTL Expiration
 - [x] Step 5.3: LRU Eviction
+- [x] Step 5.4: Advanced Features (Singleflight, Cache-Aside)
