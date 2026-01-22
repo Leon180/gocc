@@ -1,0 +1,111 @@
+# Project 7: Task Scheduler - Self-Assessment Q&A
+
+## Q1: Why use time.Timer vs time.Sleep?
+
+```go
+// time.Sleep - BLOCKS, cannot be cancelled
+time.Sleep(5 * time.Second)  
+
+// time.Timer - Uses CHANNEL, can be cancelled via select
+timer := time.NewTimer(5 * time.Second)
+select {
+case <-timer.C:        // Fires after delay
+case <-ctx.Done():     // Can be cancelled!
+    timer.Stop()       // Clean up resources
+}
+```
+
+| Aspect | time.Sleep | time.Timer |
+|--------|------------|------------|
+| Cancellable | No | Yes (via select) |
+| Resource | Blocks goroutine | Returns channel |
+| Cleanup | None | Call Stop() |
+
+---
+
+## Q2: time.Ticker vs time.Timer Loop
+
+```go
+// Ticker - Built-in repeated firing
+ticker := time.NewTicker(1 * time.Second)
+for range ticker.C {
+    doWork()
+}
+
+// Timer loop - Manual reset
+timer := time.NewTimer(1 * time.Second)
+for {
+    <-timer.C
+    doWork()
+    timer.Reset(1 * time.Second)  // Must reset manually!
+}
+```
+
+| Use Case | Choose |
+|----------|--------|
+| Fixed interval | Ticker |
+| Variable delay (backoff) | Timer loop |
+| One-shot | Timer |
+
+---
+
+## Q3: Goroutine Cleanup on Close()
+
+```go
+func (s *Scheduler) Close() error {
+    s.cancel()   // 1. Cancel context → signals all goroutines
+    s.wg.Wait()  // 2. Wait for all to exit
+    return nil
+}
+
+// In each task goroutine:
+for {
+    select {
+    case <-ctx.Done():  // Listen for cancel
+        return          // Exit cleanly
+    case <-ticker.C:
+        // work
+    }
+}
+```
+
+What prevents leaks:
+- context.Context propagates cancellation
+- sync.WaitGroup ensures all exit before Close() returns
+- Every goroutine has exit path via ctx.Done()
+
+---
+
+## Q4: Cron Next() Efficiency
+
+Current: Iterates second-by-second (slow for far future times)
+
+More efficient: Jump to next valid field value
+```go
+// Jump to next valid month first
+// Then jump to next valid day
+// Then hour, minute, second
+```
+
+Production libs like robfig/cron use this approach.
+
+---
+
+## Q5: Task Overlap
+
+If task takes longer than interval:
+- Executions queue up
+- Can cause backpressure
+
+Solutions:
+```go
+// Option 1: Skip if already running
+var running int32
+if !atomic.CompareAndSwapInt32(&running, 0, 1) {
+    return  // Skip
+}
+defer atomic.StoreInt32(&running, 0)
+
+// Option 2: Use worker pool
+// Option 3: Cancel previous execution
+```

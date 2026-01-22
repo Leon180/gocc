@@ -159,15 +159,15 @@
 
 > Focus: `Mutex`, `Cond`, scheduled tasks
 
-- [ ] **7.1 Basic Scheduler**
-  - [ ] Implement delayed execution
-  - [ ] Implement interval execution
-  - [ ] Use `time.Ticker` and `time.Timer`
+- [x] **7.1 Basic Scheduler**
+  - [x] Implement delayed execution
+  - [x] Implement interval execution
+  - [x] Use `time.Ticker` and `time.Timer`
 
-- [ ] **7.2 Cron-like Scheduler**
-  - [ ] Parse cron expressions
-  - [ ] Support second-level precision
-  - [ ] Implement task registration and cancellation
+- [x] **7.2 Cron-like Scheduler**
+  - [x] Parse cron expressions
+  - [x] Support second-level precision
+  - [x] Implement task registration and cancellation
 
 - [ ] **7.3 Task Management**
   - [ ] Implement task priority
