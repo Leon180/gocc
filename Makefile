@@ -91,6 +91,11 @@ clean:
 	@find . -name "*.out" -delete
 	@find . -name "*.prof" -delete
 
+# Run pub/sub interactive demo
+pubsub-demo:
+	@echo "Starting Pub/Sub Demo..."
+	@cd stage1/04-pubsub && go run main.go
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -103,5 +108,7 @@ help:
 	@echo "  modernize    - Run go modernize analyzer"
 	@echo "  modernize-fix- Run modernize with auto-fix"
 	@echo "  bench        - Run benchmarks"
+	@echo "  pubsub-demo  - Run pub/sub interactive demo"
 	@echo "  clean        - Clean build artifacts"
 	@echo "  help         - Show this help"
+

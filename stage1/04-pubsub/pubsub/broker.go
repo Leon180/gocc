@@ -1,3 +1,5 @@
+// Package pubsub implements a publish/subscribe messaging system.
+// See main.go for workflow documentation and CLI demo.
 package pubsub
 
 import (
@@ -68,6 +70,17 @@ func (s *Subscriber) IsSubscribed(topic string) bool {
 	return s.topics[topic]
 }
 
+// Topics returns a list of topics this subscriber is interested in.
+func (s *Subscriber) Topics() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	topics := make([]string, 0, len(s.topics))
+	for t := range s.topics {
+		topics = append(topics, t)
+	}
+	return topics
+}
+
 // Close closes the subscriber's message channel.
 func (s *Subscriber) Close() {
 	s.mu.Lock()
@@ -81,6 +94,7 @@ func (s *Subscriber) Close() {
 // send attempts to send a message to the subscriber.
 // Returns false if the subscriber is closed or buffer is full (non-blocking).
 func (s *Subscriber) send(msg Message) bool {
+	// Check subscriber's status
 	s.mu.RLock()
 	if s.closed {
 		s.mu.RUnlock()

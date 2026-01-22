@@ -5,6 +5,63 @@ import (
 	"sync"
 )
 
+/*
+
+# Fan-Out Pattern
+
+One input, multiple outputs. Distributes work or broadcasts messages.
+
+	               ┌──► Worker 1 ──► Result 1
+	               │
+	Source ────────┼──► Worker 2 ──► Result 2
+	               │
+	               └──► Worker 3 ──► Result 3
+
+Use case: Parallel processing, broadcasting to multiple consumers.
+
+# Fan-In Pattern
+
+Multiple inputs, one output. Merges results from parallel workers.
+
+	Worker 1 ───┐
+	            │
+	Worker 2 ───┼──► Merged Output
+	            │
+	Worker 3 ───┘
+
+Use case: Aggregating results, collecting from multiple sources.
+
+# Pipeline Pattern
+
+Chain of processing stages. Each stage transforms data.
+
+	Input ──► Stage 1 ──► Stage 2 ──► Stage 3 ──► Output
+	          (validate)  (transform) (enrich)
+
+Use case: ETL, request processing, data transformation.
+
+# Usage Example
+
+	// Fan-Out: 1 producer → 3 workers
+	input := make(chan int)
+	outputs := FanOut(ctx, input, 3)
+
+	// Fan-In: 3 workers → 1 collector
+	merged := FanIn(ctx, outputs...)
+
+	// Pipeline: chain transformations
+	result := Pipeline(ctx, input,
+	    func(x int) int { return x * 2 },
+	    func(x int) int { return x + 1 },
+	)
+
+	// Broadcast: send to all subscribers
+	bc := NewBroadcast[string](10)
+	sub1 := bc.Subscribe(10)
+	sub2 := bc.Subscribe(10)
+	bc.Send("hello")  // Both sub1 and sub2 receive "hello"
+*/
+
 // FanOut distributes messages from one input channel to multiple output channels.
 // Each output channel receives a copy of every message.
 //
