@@ -174,10 +174,10 @@
   - [x] Support task dependencies
   - [x] Implement task retry mechanism
 
-- [ ] **7.4 Advanced Features**
-  - [ ] Use `sync.Cond` to implement task waiting
-  - [ ] Implement distributed task lock
-  - [ ] Support task persistence
+- [x] **7.4 Advanced Features**
+  - [x] Use `sync.Cond` to implement task waiting
+  - [x] Implement distributed task lock
+  - [x] Support task persistence
 
 ---
 

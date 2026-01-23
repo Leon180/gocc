@@ -109,3 +109,69 @@ defer atomic.StoreInt32(&running, 0)
 // Option 2: Use worker pool
 // Option 3: Cancel previous execution
 ```
+
+---
+
+# Step 7.4: Advanced Features Q&A
+
+## Q1: sync.Cond vs Channels
+
+| Use sync.Cond | Use Channel |
+|--------------|-------------|
+| Many waiters, broadcast needed | 1:1 communication |
+| Condition may become true/false repeatedly | One-time signal |
+| Working with mutex-protected data | Passing data, not just signals |
+
+sync.Cond advantages:
+- Reusable: Can wait again after waking
+- No allocation: Channels create memory for each waiter
+- Condition rechecking: Works with for loop pattern
+
+---
+
+## Q2: Why for loop, not if?
+
+```go
+// WRONG - spurious wakeup issue
+if !completed {
+    cond.Wait()  // May wake without Signal/Broadcast
+}
+
+// CORRECT - re-check after every wakeup
+for !completed {
+    cond.Wait()
+}
+```
+
+"Spurious wakeups" can happen due to:
+- OS-level interrupts
+- Another goroutine signaled for different condition
+
+---
+
+## Q3: DistributedLock TTL
+
+Without TTL:
+  Worker A acquires lock → crashes → lock held FOREVER
+  Other workers wait forever = DEADLOCK
+
+With TTL (30s):
+  Worker A acquires lock → crashes
+  After 30s: lock expires automatically
+  Worker B can acquire
+
+---
+
+## Q4: Heap vs Sorted Slice
+
+Heap: O(log n) push/pop - only fixes one path
+Sorted slice: O(n) insert - shifts all elements
+
+---
+
+## Q5: Retry Backoff
+
+Fixed delay: Hammers server during outage
+Exponential: Gives server time to recover
+
+MaxDelay cap: Prevents unreasonable waits (e.g., 256s after 10 retries)

@@ -96,6 +96,11 @@ pubsub-demo:
 	@echo "Starting Pub/Sub Demo..."
 	@cd stage1/04-pubsub && go run main.go
 
+# Run task scheduler interactive demo
+scheduler-demo:
+	@echo "Starting Task Scheduler Demo..."
+	@cd stage2/07-task-scheduler && go run main.go
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -109,6 +114,7 @@ help:
 	@echo "  modernize-fix- Run modernize with auto-fix"
 	@echo "  bench        - Run benchmarks"
 	@echo "  pubsub-demo  - Run pub/sub interactive demo"
+	@echo "  scheduler-demo - Run task scheduler demo"
 	@echo "  clean        - Clean build artifacts"
 	@echo "  help         - Show this help"
 

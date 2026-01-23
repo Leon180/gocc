@@ -61,3 +61,4 @@ stage2/07-task-scheduler/
 - [x] Step 7.1: Basic Scheduler (Timer, Ticker)
 - [x] Step 7.2: Cron-like Scheduler
 - [x] Step 7.3: Task Management (Priority, Retry, Dependencies)
+- [x] Step 7.4: Advanced Features (sync.Cond, Distributed Lock)
