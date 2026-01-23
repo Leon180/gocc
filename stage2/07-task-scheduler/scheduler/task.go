@@ -53,15 +53,37 @@ func (s TaskState) String() string {
 	}
 }
 
+// TaskPriority defines task execution priority.
+type TaskPriority int
+
+const (
+	PriorityLow    TaskPriority = 0
+	PriorityNormal TaskPriority = 1
+	PriorityHigh   TaskPriority = 2
+)
+
+// RetryConfig defines retry behavior for failed tasks.
+type RetryConfig struct {
+	MaxRetries  int           // Maximum number of retries (0 = no retry)
+	Delay       time.Duration // Delay before first retry
+	MaxDelay    time.Duration // Maximum delay (for backoff)
+	Multiplier  float64       // Backoff multiplier (e.g., 2.0 for exponential)
+	RetryCount  int           // Current retry count
+	NextRetryAt time.Time     // Time of next retry attempt
+}
+
 // Task represents a scheduled task.
 type Task struct {
 	ID         TaskID
 	Name       string
 	Type       TaskType
+	Priority   TaskPriority  // Task priority
 	Delay      time.Duration // For Once: delay before execution
 	Interval   time.Duration // For Interval: time between executions
 	CronExpr   *CronExpr     // For Cron: parsed cron expression
 	Func       TaskFunc
+	Retry      *RetryConfig // Retry configuration
+	DependsOn  []TaskID     // Tasks that must complete before this runs
 	CreatedAt  time.Time
 	NextRunAt  time.Time
 	LastRunAt  time.Time

@@ -252,8 +252,13 @@ func (s *Scheduler) runCron(ctx context.Context, task *Task) {
 	}
 }
 
-// executeTask runs the task function.
+// executeTask runs the task function with retry and dependency support.
 func (s *Scheduler) executeTask(ctx context.Context, task *Task) {
+	// Check dependencies first
+	if !s.areDependenciesMet(task) {
+		return // Skip execution, will retry on next schedule
+	}
+
 	task.SetState(TaskStateRunning)
 	task.IncrementRunCount()
 
@@ -265,12 +270,78 @@ func (s *Scheduler) executeTask(ctx context.Context, task *Task) {
 
 	task.mu.Lock()
 	task.LastError = err
+	retry := task.Retry
 	task.mu.Unlock()
 
 	if err != nil {
 		task.IncrementErrorCount()
 		atomic.AddInt64(&s.totalFailed, 1)
+
+		// Handle retry if configured
+		if retry != nil && retry.RetryCount < retry.MaxRetries {
+			s.scheduleRetry(ctx, task)
+		}
 	}
+}
+
+// areDependenciesMet checks if all dependent tasks are completed.
+func (s *Scheduler) areDependenciesMet(task *Task) bool {
+	task.mu.RLock()
+	deps := task.DependsOn
+	task.mu.RUnlock()
+
+	if len(deps) == 0 {
+		return true
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, depID := range deps {
+		dep, exists := s.tasks[depID]
+		if !exists {
+			continue // Dependency doesn't exist, consider it met
+		}
+		if dep.State() != TaskStateCompleted {
+			return false
+		}
+	}
+	return true
+}
+
+// scheduleRetry schedules a retry for a failed task.
+func (s *Scheduler) scheduleRetry(ctx context.Context, task *Task) {
+	task.mu.Lock()
+	defer task.mu.Unlock()
+
+	task.Retry.RetryCount++
+
+	// Calculate backoff delay
+	delay := task.Retry.Delay
+	if task.Retry.Multiplier > 0 {
+		for i := 1; i < task.Retry.RetryCount; i++ {
+			delay = time.Duration(float64(delay) * task.Retry.Multiplier)
+		}
+	}
+	if task.Retry.MaxDelay > 0 && delay > task.Retry.MaxDelay {
+		delay = task.Retry.MaxDelay
+	}
+
+	task.Retry.NextRetryAt = time.Now().Add(delay)
+	task.state = TaskStatePending
+
+	// Schedule retry in background
+	go func() {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+			s.executeTask(ctx, task)
+		}
+	}()
 }
 
 // Cancel cancels a scheduled task.

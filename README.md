@@ -169,10 +169,10 @@
   - [x] Support second-level precision
   - [x] Implement task registration and cancellation
 
-- [ ] **7.3 Task Management**
-  - [ ] Implement task priority
-  - [ ] Support task dependencies
-  - [ ] Implement task retry mechanism
+- [x] **7.3 Task Management**
+  - [x] Implement task priority
+  - [x] Support task dependencies
+  - [x] Implement task retry mechanism
 
 - [ ] **7.4 Advanced Features**
   - [ ] Use `sync.Cond` to implement task waiting

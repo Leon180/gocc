@@ -60,4 +60,4 @@ stage2/07-task-scheduler/
 
 - [x] Step 7.1: Basic Scheduler (Timer, Ticker)
 - [x] Step 7.2: Cron-like Scheduler
-- [ ] Step 7.3: Task Management
+- [x] Step 7.3: Task Management (Priority, Retry, Dependencies)

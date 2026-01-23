@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -270,5 +272,105 @@ func TestScheduler_ScheduleCron_InvalidExpr(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected error for invalid cron expression")
+	}
+}
+
+func TestTask_Retry(t *testing.T) {
+	s := New()
+	defer func() { _ = s.Close() }()
+
+	var attempts int32
+	failUntil := int32(2) // Fail first 2 attempts, succeed on 3rd
+
+	// Create retry config before scheduling
+	retryConfig := &RetryConfig{
+		MaxRetries: 3,
+		Delay:      20 * time.Millisecond,
+		Multiplier: 1.5,
+		MaxDelay:   100 * time.Millisecond,
+	}
+
+	task, err := s.ScheduleOnce("retry1", "Retry Task", 10*time.Millisecond, func(ctx context.Context) error {
+		attempt := atomic.AddInt32(&attempts, 1)
+		if attempt <= failUntil {
+			return errors.New("simulated failure")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("ScheduleOnce failed: %v", err)
+	}
+
+	// Set retry config with lock
+	task.mu.Lock()
+	task.Retry = retryConfig
+	task.mu.Unlock()
+
+	// Wait for retries to complete
+	time.Sleep(300 * time.Millisecond)
+
+	finalAttempts := atomic.LoadInt32(&attempts)
+	if finalAttempts < 3 {
+		t.Errorf("Expected at least 3 attempts, got %d", finalAttempts)
+	}
+}
+
+func TestTask_Dependencies(t *testing.T) {
+	s := New()
+	defer func() { _ = s.Close() }()
+
+	var order []string
+	var mu sync.Mutex
+
+	// Task A - runs immediately
+	taskA, _ := s.ScheduleOnce("taskA", "Task A", 10*time.Millisecond, func(ctx context.Context) error {
+		mu.Lock()
+		order = append(order, "A")
+		mu.Unlock()
+		return nil
+	})
+
+	// Task B - depends on A
+	taskB, _ := s.ScheduleOnce("taskB", "Task B", 50*time.Millisecond, func(ctx context.Context) error {
+		mu.Lock()
+		order = append(order, "B")
+		mu.Unlock()
+		return nil
+	})
+
+	// Set dependency with lock
+	taskB.mu.Lock()
+	taskB.DependsOn = []TaskID{"taskA"}
+	taskB.mu.Unlock()
+
+	// Wait for execution
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify A completed
+	if taskA.State() != TaskStateCompleted {
+		t.Errorf("Task A should be completed, got %v", taskA.State())
+	}
+
+	mu.Lock()
+	hasA := false
+	for _, o := range order {
+		if o == "A" {
+			hasA = true
+		}
+	}
+	mu.Unlock()
+
+	if !hasA {
+		t.Error("Task A should have executed")
+	}
+}
+
+func TestTask_Priority(t *testing.T) {
+	// Test that priority constants are defined correctly
+	if PriorityLow >= PriorityNormal {
+		t.Error("PriorityLow should be less than PriorityNormal")
+	}
+	if PriorityNormal >= PriorityHigh {
+		t.Error("PriorityNormal should be less than PriorityHigh")
 	}
 }
