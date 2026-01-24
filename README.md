@@ -185,25 +185,26 @@
 
 > Focus: `sync.Map` vs sharded locks (sharding)
 
-- [ ] **8.1 Understanding sync.Map**
-  - [ ] Study `sync.Map` use cases
-  - [ ] Compare performance with `map + Mutex`
-  - [ ] Understand `sync.Map` internal implementation
+- [x] **8.1 Understanding sync.Map**
+  - [x] Study `sync.Map` use cases
+  - [x] Compare performance with `map + Mutex`
+  - [x] Understand `sync.Map` internal implementation
 
-- [ ] **8.2 Sharded Lock Map**
-  - [ ] Implement Sharded Map
-  - [ ] Design appropriate hash function
-  - [ ] Dynamically adjust shard count
+- [x] **8.2 Sharded Lock Map**
+  - [x] Implement Sharded Map
+  - [x] Design appropriate hash function
+  - [x] Dynamically adjust shard count
 
-- [ ] **8.3 Performance Testing and Tuning**
-  - [ ] Write comprehensive benchmarks
-  - [ ] Test performance under different read/write ratios
-  - [ ] Analyze lock contention
+- [x] **8.3 Performance Testing and Tuning**
+  - [x] Write comprehensive benchmarks
+  - [x] Test performance under different read/write ratios
+  - [x] Analyze lock contention
 
-- [ ] **8.4 High-Performance KV Store**
-  - [ ] Combine TTL with sharded locks
-  - [ ] Implement batch operations
-  - [ ] Add data persistence
+- [x] **8.4 High-Performance KV Store**
+  - [x] Combine TTL with sharded locks
+  - [x] Implement batch operations
+  - [x] Add data persistence
+
 
 ---
 

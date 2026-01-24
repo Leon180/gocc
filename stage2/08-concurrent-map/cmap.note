@@ -1,0 +1,165 @@
+# Concurrent Map Self-Assessment Notes
+
+## Step 8.1: Understanding sync.Map
+
+### Q: When is sync.Map better than map+RWMutex?
+A: Two specific cases:
+1. **Write-once, read-many**: Entry written once, then only read (cache pattern)
+2. **Disjoint keys**: Different goroutines access different key ranges
+
+sync.Map uses a read-only map for stable entries and a dirty map for writes.
+Reads from stable entries are lock-free. Our benchmark showed:
+- Read-heavy: sync.Map ~16ns vs RWMutex ~117ns
+
+### Q: Why does sync.Map have no Len() method?
+A: sync.Map doesn't guarantee a consistent snapshot. Range() may see entries
+added during iteration. Len() would either be:
+- Inaccurate (point-in-time) 
+- Expensive (full iteration with locks)
+Neither is useful, so it's omitted by design.
+
+### Q: What are the trade-offs of RWMutex vs Mutex?
+A: RWMutex allows concurrent readers but:
+- Has higher overhead per operation
+- Writers still block all readers
+- Best for high read:write ratios (>90% reads)
+
+Our benchmarks:
+- Read-heavy: RWMutex 117ns vs Mutex 179ns (35% faster)
+- Write-heavy: RWMutex 128ns vs Mutex 194ns (34% faster)
+- RWMutex wins in both cases due to concurrent reads
+
+---
+
+## Step 8.2: Sharded Lock Map
+
+### Q: How does sharding reduce contention?
+A: Instead of one lock, we have N locks. If keys are well-distributed:
+- Probability of contention drops to ~1/N
+- Different goroutines likely hit different shards
+
+With 32 shards and good hash distribution:
+```
+key1 → shard 7  ─┐
+key2 → shard 3  ─┼─ No contention (different shards)
+key3 → shard 7  ─┼─ Possible contention (same shard)
+key4 → shard 15 ─┘
+```
+
+### Q: Why use power-of-2 shard counts?
+A: Fast modulo via bitwise AND:
+```go
+// With 32 shards (mask = 31 = 0b11111):
+index = hash & mask  // Faster than: hash % 32
+```
+
+### Q: What makes a good hash function for sharding?
+1.  **Speed (Priority #1)**: It runs on *every* operation. If hashing takes 100ns and the lock only takes 20ns, you've defeated the purpose!
+2.  **Distribution (Priority #2)**: It needs "good enough" uniform distribution. It doesn't need to be cryptographic quality.
+3.  **Deterministic**: Crucial. `hash("key")` must always return the same value in the same process run.
+
+**Why FNV-1a?**
+It's an industry standard for this trade-off: very fast, very simple implementation, and good distribution for short strings/integers.
+
+### Q: How do you measure lock contention?
+A: Two main ways:
+1.  **Benchmarks**: Compare throughput of `MutexMap` vs `ShardedMap` under high concurrency (like we did!).
+2.  **Runtime Profiling**: Use `go test -bench=. -mutexprofile=mutex.out` and view with `go tool pprof mutex.out`. It shows exactly how much time goroutines spend waiting for locks.
+
+---
+
+## Step 8.3: Performance Testing
+
+### Benchmark Results Summary (Apple M2):
+
+| Map Type    | Read-Heavy | Write-Heavy | High Contention |
+|------------|------------|-------------|-----------------|
+| MutexMap   | 179 ns/op  | 194 ns/op   | 309 ns/op       |
+| RWMutexMap | 117 ns/op  | 128 ns/op   | 229 ns/op       |
+| SyncMap    | 16 ns/op   | 29 ns/op    | 264 ns/op       |
+| ShardedMap | 40 ns/op   | 60 ns/op    | 230 ns/op       |
+
+### Key Insights:
+1. **sync.Map excels at read-heavy**: 10x faster than alternatives
+2. **ShardedMap best for disjoint keys**: 86ns vs sync.Map's 661ns
+3. **More shards = better**: 64 shards (46ns) vs 8 shards (99ns)
+4. **High contention normalizes all**: Single key makes all ~230-310ns
+
+### Q: Why does sync.Map struggle with disjoint keys benchmark?
+A: Our benchmark uses unique keys per goroutine (not fitting cache pattern).
+sync.Map promotes dirty→read after misses, causing overhead.
+Each new key hits the slow path (acquire mutex, update dirty map).
+
+### Q: When does sync.Map outperform ShardedMap?
+A: `sync.Map` wins in **Read-Heavy, Stable Key** scenarios:
+1.  **Lock-Free Reads**: For keys already in the read map, `sync.Map` uses atomic loads (~16ns), while `ShardedMap` still needs an RLock (~40ns).
+2.  **Stable Sets**: If keys are rarely added/removed, `sync.Map` stays in the fast read-only path.
+3.  **Cache Friendliness**: No lock contention means better CPU cache locality.
+
+**Choose ShardedMap when:**
+- You have frequent writes ( > 10-20% )
+- You are constantly adding new keys (disjoint keys pattern)
+- You need deterministic performance (no "promotion" pauses)
+
+### Q: How many shards should you use?
+A: It's a trade-off, but generally **32 to 64** is a sweet spot.
+- **Too few (e.g., 4)**: Still high probability of collisions/contention.
+- **Too many (e.g., 1024)**: Wasted memory (empty maps) and slower `Range()` (accessing 1024 mutexes).
+- **Rule of Thumb**: Aim for `ShardCount ≈ MaxConcurrentProcs`.
+
+**Dependency on Hash Function:**
+As you noted, the effectiveness depends entirely on the hash function!
+- **Good Hash**: Evenly spreads keys. 32 shards work great.
+- **Bad Hash**: Clumps keys into one shard (e.g., `hash(key) = 1`). 32 shards behave like 1 shard (MutexMap).
+- **Power of 2**: Crucial for fast `hash & mask` mapping. Prime numbers are better for modulo `%`, but bitwise `&` is much faster.
+
+---
+
+## Step 8.4: High-Performance KV Store (TTL Map)
+
+### Q: How does TTL expiration work?
+Two mechanisms:
+1. **Lazy deletion**: Check on Get(), delete if expired
+2. **Background cleanup**: Goroutine sweeps periodically
+
+```go
+func (m *TTLMap) Get(key K) (V, bool) {
+    entry := m.data[key]
+    if entry.IsExpired() {
+        m.Delete(key)  // Lazy deletion
+        return zero, false
+    }
+    return entry.Value, true
+}
+```
+
+### Q: Why have both lazy and background cleanup?
+- **Lazy alone**: Memory grows with expired entries (never accessed = never deleted)
+- **Background alone**: Expired entries returned until next sweep
+- **Both together**: Correct behavior + bounded memory
+
+### Q: What's the trade-off in cleanup interval?
+- **Short interval (100ms)**: Low memory, high CPU overhead
+- **Long interval (5min)**: High memory, low CPU overhead
+- **Typical default**: 1 minute (balanced)
+
+### Q: How to choose TTLMap vs regular cache libraries?
+Use TTLMap when:
+- Need simple TTL + sharding
+- Want to avoid dependencies
+- Predictable memory is important
+
+Use external libs (groupcache, bigcache) when:
+- Need eviction policies (LRU, LFU)
+- Need distributed caching
+- Need detailed metrics
+
+---
+
+## Lessons Learned
+
+1. **Measurement first**: Always benchmark before choosing implementation
+2. **Know your pattern**: sync.Map is NOT universally better
+3. **Sharding scales**: More shards = less contention (to a point)
+4. **TTL needs cleanup**: Lazy deletion alone leaks memory
+5. **Generics FTW**: Type-safe wrappers around sync.Map are clean

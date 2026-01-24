@@ -101,6 +101,11 @@ scheduler-demo:
 	@echo "Starting Task Scheduler Demo..."
 	@cd stage2/07-task-scheduler && go run main.go
 
+# Run concurrent map demo
+cmap-demo:
+	@echo "Starting Concurrent Map Demo..."
+	@cd stage2/08-concurrent-map && go run main.go
+
 # Show help
 help:
 	@echo "Available targets:"
@@ -115,6 +120,7 @@ help:
 	@echo "  bench        - Run benchmarks"
 	@echo "  pubsub-demo  - Run pub/sub interactive demo"
 	@echo "  scheduler-demo - Run task scheduler demo"
+	@echo "  cmap-demo    - Run concurrent map demo"
 	@echo "  clean        - Clean build artifacts"
 	@echo "  help         - Show this help"
 
