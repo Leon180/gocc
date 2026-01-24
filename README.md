@@ -214,10 +214,23 @@
 
 > Focus: request handling, graceful shutdown, `context`
 
-- [ ] **9.1 Basic HTTP Server**
-  - [ ] Build server using `net/http`
-  - [ ] Implement routing
-  - [ ] Implement middleware pattern
+- [x] **9.1 Basic HTTP Server**
+  - [x] Build server using `net/http`
+  - [x] Implement routing
+  - [x] Implement middleware pattern
+
+- [x] **9.2 Middleware Chain** (Expanded scope)
+  - [x] Logging middleware
+  - [x] Panic recovery
+  - [x] Timeouts
+
+- [x] **9.3 Context & Timeouts**
+  - [x] Request cancellation
+  - [x] Timeout handling
+
+- [x] **9.4 Advanced Features**
+  - [x] Graceful shutdown
+  - [x] Connection limiting
 
 - [ ] **9.2 Request Handling**
   - [ ] Implement request context propagation
